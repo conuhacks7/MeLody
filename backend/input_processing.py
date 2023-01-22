@@ -112,42 +112,59 @@ def read_inp(CHUNK, FORMAT, CHANNELS, RATE, RECORD_SECONDS):
         stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True)
         print('Recording...')
         result = np.array([])
-        noise = 0
+        noise = 50
+        batch = np.array([])
+        cnt = 0
         play = False
         last = 0
         for i in range(0, RATE // CHUNK * RECORD_SECONDS):
             temp = stream.read(CHUNK)
             wf.writeframes(temp)
             temp = np.asarray(struct.unpack(unpacking, temp))
-            result = np.hstack((result, temp))
-            if i <= 50:
-                noise = max(noise, np.max(temp))
+            temp = temp[::2]
+            temp[temp > 60] = temp[temp > 60] * 3
+            if len(result) == 0:
+                result = temp
             else:
-                for item in np.split(temp, 4):
-                    if np.any(item > noise * 2):
-                        spectrum = np.fft.fft(item)
-                        frequencies = np.fft.fftfreq(len(spectrum), 1 / RATE)
-                        #pylab.plot(frequencies, spectrum)
-                        #pylab.show()
-                        useful = abs(frequencies) < 1000
-                        useful = (frequencies > 0) * useful
-                        spectrum = abs(spectrum[useful])
-                        frequencies = frequencies[useful]
-                        max_index = np.argmax(spectrum)
-                        useful = spectrum > spectrum[max_index] * 0.2
-                        useful = np.logical_not(useful)
-                        spectrum[useful] = 0
-                        maxs = argrelmax(spectrum, mode='wrap')
-                        print("Frequency played: " + str(get_midi(frequencies[maxs[0][0]])))
-                        play = True
-                        last = get_midi(frequencies[maxs[0][0]])
+                result = np.hstack((result, temp))
+            if cnt < 7:
+                if len(batch) == 0:
+                    batch = temp
                 else:
-                    if play:
-                        play = False
-                        print("Frequency played: " + str(last))
-                    else:
-                        print("No frequency played")
-        print('Done')
+                    batch = np.hstack((batch, temp))
+                cnt += 1
+            else:
+                batch = np.hstack((batch, temp))
+                if i <= 10:
+                    noise = max(noise, np.max(temp))
+                else:
+                    for item in np.split(temp, 1):
+                        if np.any(item > noise * 1.5):
+                            spectrum = np.fft.fft(item)
+                            frequencies = np.fft.fftfreq(len(spectrum), 1 / RATE)
+                            useful = abs(frequencies) < 1000
+                            useful = (frequencies > 0) * useful
+                            spectrum = abs(spectrum[useful])
+                            frequencies = frequencies[useful]
+                            max_index = np.argmax(spectrum)
+                            useful = spectrum > spectrum[max_index] * 0.2
+                            useful = np.logical_not(useful)
+                            spectrum[useful] = 0
+                            maxs = argrelmax(spectrum, mode='wrap')
+                            current = get_midi(frequencies[maxs[0][0]])
+                            if play and current < last:
+                                print("Frequency played: " + str(last))
+                            else:
+                                last = current
+                                print("Frequency played: " + str(current))
+                            play = True
+                        else:
+                            print("No frequency played")
+                            play = False
+                            last = 0
+                    batch = np.array([])
+                    cnt = 0
+        print('Done') 
         pylab.plot(np.array(range(0, len(result))), result)
         pylab.show()
         stream.close()
@@ -158,7 +175,7 @@ def read_inp(CHUNK, FORMAT, CHANNELS, RATE, RECORD_SECONDS):
 def analyze():
     RATE = 44100
 
-    read_inp(1024, pyaudio.paInt16, 1 if sys.platform == 'darwin' else 2, RATE, 10)
+    read_inp(1024, pyaudio.paInt16, 1 if sys.platform == 'darwin' else 2, RATE, 20)
     # Analyze input file
 
     a = read('output.wav')
