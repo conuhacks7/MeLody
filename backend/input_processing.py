@@ -113,14 +113,15 @@ def read_inp(CHUNK, FORMAT, CHANNELS, RATE, RECORD_SECONDS):
         print('Recording...')
         result = np.array([])
         noise = 0
+        play = False
+        last = 0
         for i in range(0, RATE // CHUNK * RECORD_SECONDS):
             temp = stream.read(CHUNK)
             wf.writeframes(temp)
             temp = np.asarray(struct.unpack(unpacking, temp))
             result = np.hstack((result, temp))
-            if i <= 2:
+            if i <= 50:
                 noise = max(noise, np.max(temp))
-                print(noise)
             else:
                 for item in np.split(temp, 4):
                     if np.any(item > noise * 2):
@@ -138,19 +139,26 @@ def read_inp(CHUNK, FORMAT, CHANNELS, RATE, RECORD_SECONDS):
                         spectrum[useful] = 0
                         maxs = argrelmax(spectrum, mode='wrap')
                         print("Frequency played: " + str(get_midi(frequencies[maxs[0][0]])))
+                        play = True
+                        last = get_midi(frequencies[maxs[0][0]])
                 else:
-                    print("No frequency played")
+                    if play:
+                        play = False
+                        print("Frequency played: " + str(last))
+                    else:
+                        print("No frequency played")
         print('Done')
         pylab.plot(np.array(range(0, len(result))), result)
         pylab.show()
         stream.close()
         p.terminate()
+        print(noise)
 
 
 def analyze():
     RATE = 44100
 
-    read_inp(1024, pyaudio.paInt16, 1 if sys.platform == 'darwin' else 2, RATE, 5)
+    read_inp(1024, pyaudio.paInt16, 1 if sys.platform == 'darwin' else 2, RATE, 10)
     # Analyze input file
 
     a = read('output.wav')
@@ -192,6 +200,5 @@ def analyze():
         #pylab.show()
         maxs = argrelmax(spectrum)
         print("Frequency played: " + str(get_midi(frequencies[maxs[0][0]])))
-
 
 analyze()
