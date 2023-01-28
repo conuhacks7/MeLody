@@ -237,5 +237,4 @@ def analyze():
         maxs = argrelmax(spectrum)
         print("Frequency played: " + str(get_midi(frequencies[maxs[0][0]])))'''
 
-
 analyze()
