@@ -27,7 +27,7 @@ const NotesAnimation = ({
     // }
     setTimeout(() => {
         setTriggerRerender(triggerRerender => !triggerRerender);
-    }, 2);
+    }, 1);
 
     const clearAllNotes = () => {
         if (!renderState) return;
@@ -137,36 +137,6 @@ const NotesAnimation = ({
         // console.log('arr', notesToPlayArray)
     }, [notesToPlayArray])
     
-    // kickstart the loop
-
-    // const growNote = (note, notesToPlayArray) => {
-    //     setTimeout((note, notesToPlayArray) => {
-    //         if (is_note_being_played(note, notesToPlayArray) === -1) {
-    //             // break if note isn't being played
-    //         }
-    //         if (!renderState) growNote();
-    //         let curr_note = find_body_in_array('test', renderState.engine.world.bodies);
-    //         console.log('curr', curr_note)
-    //         let old_height = curr_note.bounds?.max.y - curr_note.bounds?.min.y;
-    //         let y_coords = (curr_note.bounds?.max.y + curr_note.bounds?.min.y) / 2;
-    //         let x_coords = (curr_note.bounds?.max.x + curr_note.bounds?.min.x) / 2;
-    //         console.log('current height:', old_height)
-    //         let scale_factor = 1 + 1 / (old_height + 1);
-    //         console.log('scale factor', scale_factor)
-    //         let new_height = scale_factor*old_height;
-    //         console.log('old', old_height)
-    //         console.log('new', new_height)
-    //         let origin_disp = (new_height - old_height)/2;
-    //         console.log('origin disp', origin_disp)
-    //         Body.scale(curr_note, 1, scale_factor);
-    //         Body.setPosition(curr_note, {
-    //             x: x_coords,
-    //             y: y_coords - origin_disp
-    //         })
-
-
-    //     }, 1)
-    // }
 
     const canvasRef = useRef();
     const boxRef = useRef();
@@ -174,27 +144,6 @@ const NotesAnimation = ({
     const handleResize = () => {
 		setConstraints(boxRef.current.getBoundingClientRect())
 	}
-    // useEffect(() => {
-    //     if (!renderState) return;
-    //     let curr_note = find_body_in_array('test', renderState.engine.world.bodies);
-    //     console.log('curr', curr_note)
-    //     let old_height = curr_note.bounds?.max.y - curr_note.bounds?.min.y;
-    //     let y_coords = (curr_note.bounds?.max.y + curr_note.bounds?.min.y) / 2;
-    //     let x_coords = (curr_note.bounds?.max.x + curr_note.bounds?.min.x) / 2;
-    //     console.log('current height:', old_height)
-    //     let scale_factor = 1 + 1 / (old_height + 1);
-    //     console.log('scale factor', scale_factor)
-    //     let new_height = scale_factor*old_height;
-    //     console.log('old', old_height)
-    //     console.log('new', new_height)
-    //     let origin_disp = (new_height - old_height)/2;
-    //     console.log('origin disp', origin_disp)
-    //     Body.scale(curr_note, 1, scale_factor);
-    //     Body.setPosition(curr_note, {
-    //         x: x_coords,
-    //         y: y_coords - origin_disp
-    //     })
-    // }, [noteHeight])
 
 	useEffect(() => {
 
@@ -219,15 +168,6 @@ const NotesAnimation = ({
 		Render.run(render)
 		
 		render.engine.gravity.y = -1
-
-		// setIndicesOfBodies(indexOfBodies => ({...indexOfBodies, ceiling: 0}))
-		// setIndicesOfBodies(indexOfBodies => ({...indexOfBodies, floor: 1}))
-		// setIndicesOfBodies(indexOfBodies => ({...indexOfBodies, wall_left: 2}))
-		// setIndicesOfBodies(indexOfBodies => ({...indexOfBodies, wall_right: 3}))
-
-		// window.addEventListener('resize', handleResize)
-		// window.addEventListener('click', handleMouseClick)
-		// window.addEventListener('mousemove', handleMouseMove)
 
 
 		setRenderState(render)

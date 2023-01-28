@@ -19,15 +19,9 @@ const Nav = (
                     <li>
                         <Link to = '/from-piano' onClick = {onClick}>Piano</Link>
                     </li>
-                    {/* <li>
-                        <Link to = '/' onClick = {onClick}></Link>
-                    </li> */}
-                    {/* <li>
-                        <Link to = '/' onClick = {onClick}></Link>
-                    </li>
                     <li>
-                        <Link to = '/' onClick = {onClick}></Link>
-                    </li> */}
+                        <Link to = '/from-neural-network' onClick = {onClick}>Neural Network</Link>
+                    </li>
                 </ul>
             </nav>
             <Outlet />

@@ -7,7 +7,6 @@ import './customPianoStyles.css';  // import a set of overrides
 import keyMappings from '../resources/key_maps'
 import { addNoteToSortedArray, removeNoteFromSortedArray } from '../helpers/helpers';
 
-
 const ConnectedKeyBoard = ({
     notesToPlayArray,
     updateNotesToPlayArray,
@@ -33,7 +32,7 @@ const ConnectedKeyBoard = ({
   const [isPaused, setPause] = useState(false);
 
   useEffect(() => {
-    ws.current = new WebSocket("wss://socketsbay.com/wss/v2/2/11ddc86a34cc702f0ed2cf199513e3dd/");
+    ws.current = new WebSocket("wss://socketsbay.com/wss/v2/2/${process.env.REACT_APP_API_KEY_WEB_SOCKET}/");
     ws.current.onopen = () => console.log("ws opened");
     ws.current.onclose = () => console.log("ws closed");
 
@@ -54,10 +53,15 @@ const ConnectedKeyBoard = ({
 
   useEffect(() => {
     if (note === -1) {
-
+        if (notesToPlayArray.length === 0) 
+            return;
     } else {
         if (!pianoPlayer) return;
+        updateNotesToPlayArray([...[note]])
         pianoPlayer.play(note)
+        // let newArr = addNoteToSortedArray(note, notesToPlayArray);
+        // console.log('arr b4:', notesToPlayArray)
+        // console.log('arr after:', newArr)
     }
   }, [note])
 
@@ -68,6 +72,17 @@ const ConnectedKeyBoard = ({
         if (isPaused) return;
         console.log(e)
         setCurrentNote(e?.data);
+        setPause(isPaused => !isPaused);
+        let prom = new Promise((resolve, reject) => {
+            setTimeout(() => {
+                resolve()
+            }, 2)
+        }).then( () =>{
+            updateNotesToPlayArray(new Array());
+            setPause(isPaused => !isPaused);
+
+        }
+        )
     };
   }, [isPaused]);
 
@@ -88,10 +103,7 @@ const ConnectedKeyBoard = ({
 
             playNote={(midiNumber) => {
                 console.log('note played')
-                let newArr = addNoteToSortedArray(note, notesToPlayArray);
-                // console.log('arr b4:', notesToPlayArray)
-                // console.log('arr after:', newArr)
-                updateNotesToPlayArray([...newArr])
+
             }}
             stopNote={(midiNumber) => {
                 console.log('note stopped')
@@ -100,10 +112,13 @@ const ConnectedKeyBoard = ({
                 let notesBeingPlayed = notesToPlayArray;
                 updateNotesToPlayArray([...removeNoteFromSortedArray(midiNumber, notesBeingPlayed)]);
             }}
+            onPlayNoteInput = {(midiNumber, { prevActiveNotes }) => {
+                console.log('prev', prevActiveNotes)
+            }}
             activeNotes = {notesToPlayArray}
             className={"piano-container"}
             width={1000}
-            keyboardShortcuts={keyboardShortcuts}
+            // keyboardShortcuts={keyboardShortcuts}
         />
     </div>
   );
