@@ -2,6 +2,8 @@ import wave
 import sys
 import numpy as np
 import pyaudio
+from contextlib import closing
+from websocket import create_connection
 from scipy.io.wavfile import read
 import pylab
 from scipy.signal import argrelmax
@@ -104,40 +106,41 @@ def get_midi(freq):
 
 def read_inp(CHUNK, FORMAT, CHANNELS, RATE, RECORD_SECONDS):
     # Read input signal and save as WAV file
+    melodie = list()
     with wave.open('output_a.wav', 'wb') as wf:
-        p = pyaudio.PyAudio()
-        wf.setnchannels(CHANNELS)
-        wf.setsampwidth(p.get_sample_size(FORMAT))
-        wf.setframerate(RATE)
-        stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True)
-        print('Recording...')
-        result = np.array([])
-        noise = 50
-        batch = np.array([])
-        cnt = 0
-        play = False
-        last = 0
-        for i in range(0, RATE // CHUNK * RECORD_SECONDS):
-            temp = stream.read(CHUNK)
-            wf.writeframes(temp)
-            temp = np.asarray(struct.unpack(unpacking, temp))
-            temp = temp[::2]
-            temp[temp > 60] = temp[temp > 60] * 3
-            if len(result) == 0:
-                result = temp
-            else:
-                result = np.hstack((result, temp))
-            if cnt < 7:
-                if len(batch) == 0:
-                    batch = temp
+        with closing(create_connection("wss://socketsbay.com/wss/v2/2/11ddc86a34cc702f0ed2cf199513e3dd/")) as conn:
+            p = pyaudio.PyAudio()
+            wf.setnchannels(CHANNELS)
+            wf.setsampwidth(p.get_sample_size(FORMAT))
+            wf.setframerate(RATE)
+            stream = p.open(format=FORMAT, channels=CHANNELS, rate=RATE, input=True)
+            print('Recording...')
+            result = np.array([])
+            noise = 1500
+            batch = np.array([])
+            cnt = 0
+            play = False
+            last = 0
+            sent = -2
+            length = 0
+            for i in range(0, RATE // CHUNK * RECORD_SECONDS):
+                temp = stream.read(CHUNK)
+                wf.writeframes(temp)
+                temp = np.asarray(struct.unpack(unpacking, temp))
+                temp = temp[::2]
+                temp[temp > 1750] = temp[temp > 1750] * 3
+                if len(result) == 0:
+                    result = temp
+                else:
+                    result = np.hstack((result, temp))
+                if cnt < 6:
+                    if len(batch) == 0:
+                        batch = temp
+                    else:
+                        batch = np.hstack((batch, temp))
+                    cnt += 1
                 else:
                     batch = np.hstack((batch, temp))
-                cnt += 1
-            else:
-                batch = np.hstack((batch, temp))
-                if i <= 10:
-                    noise = max(noise, np.max(temp))
-                else:
                     for item in np.split(temp, 1):
                         if np.any(item > noise * 1.5):
                             spectrum = np.fft.fft(item)
@@ -152,33 +155,49 @@ def read_inp(CHUNK, FORMAT, CHANNELS, RATE, RECORD_SECONDS):
                             spectrum[useful] = 0
                             maxs = argrelmax(spectrum, mode='wrap')
                             current = get_midi(frequencies[maxs[0][0]])
+                            if current < 55:
+                                continue
                             if play and current < last:
                                 print("Frequency played: " + str(last))
+                                length += 1
                             else:
+                                length += 1
                                 last = current
                                 print("Frequency played: " + str(current))
+                                if not current == sent:
+                                    conn.send(str(current))
+                                    sent = current
                             play = True
                         else:
+                            if not last == 0:
+                                melodie.append([last, length * CHUNK / RATE * 6])
                             print("No frequency played")
+                            length = 0
+                            if not sent == -1:
+                                conn.send(str(-1))
+                                sent = -1
                             play = False
                             last = 0
-                    batch = np.array([])
-                    cnt = 0
-        print('Done') 
-        pylab.plot(np.array(range(0, len(result))), result)
-        pylab.show()
-        stream.close()
-        p.terminate()
-        print(noise)
+                        batch = np.array([])
+                        cnt = 0
+            print('Done')
+            pylab.plot(np.array(range(0, len(result))), result)
+            pylab.show()
+            stream.close()
+            print(melodie)
+            p.terminate()
+            print(noise)
+        with closing(create_connection("wss://socketsbay.com/wss/v2/1/11ddc86a34cc702f0ed2cf199513e3dd/")) as conn:
+            conn.send(str(melodie))
 
 
 def analyze():
     RATE = 44100
 
-    read_inp(1024, pyaudio.paInt16, 1 if sys.platform == 'darwin' else 2, RATE, 20)
+    read_inp(1024, pyaudio.paInt16, 1 if sys.platform == 'darwin' else 2, RATE, 15)
     # Analyze input file
 
-    a = read('output.wav')
+''' a = read('output.wav')
     signal = np.array(a[1], dtype=np.int16)
     #pylab.plot(np.array(range(0, len(signal))) / RATE, signal)
     #pylab.show()
@@ -216,6 +235,7 @@ def analyze():
         #pylab.plot(frequencies, spectrum)
         #pylab.show()
         maxs = argrelmax(spectrum)
-        print("Frequency played: " + str(get_midi(frequencies[maxs[0][0]])))
+        print("Frequency played: " + str(get_midi(frequencies[maxs[0][0]])))'''
+
 
 analyze()
